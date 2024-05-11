@@ -1,21 +1,37 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import bgImg from "../../assets/images/login.jpg"
 import logo from '../../assets/images/logo.png'
-import { useContext } from "react"
+import { useContext, useEffect } from "react"
 import { AuthContext } from "../../provider/AuthProvider"
 import toast from "react-hot-toast"
+import axios from "axios"
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const {
         signIn,
-        signInWithGoogle
+        signInWithGoogle,
+        user,
+        loading,
     } = useContext(AuthContext);
+
+    useEffect(() => {
+        if (user) {
+            navigate('/')
+        }
+    }, [user, navigate])
+
+    const from = location.state || '/';
 
     const handleGoogleSignIn = async () => {
         try {
-            await signInWithGoogle()
+            const result = await signInWithGoogle()
+            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/jwt`, {
+                email: result?.user?.email,
+            }, { withCredentials: true })
+            console.log(data);
             toast.success('Signin Successfull')
-            navigate('/')
+            navigate(from, { replace: true })
         } catch (error) {
             console.log(error);
             toast.error(error.message);
@@ -26,18 +42,24 @@ const Login = () => {
         e.preventDefault();
         const form = e.target;
         const email = form.email.value;
-        const pass = form.pass.value;
+        const pass = form.password.value;
         console.log(email, pass);
         try {
             const result = await signIn(email, pass)
-            console.log(result)
-            navigate('/')
+            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/jwt`, {
+                email: result?.user?.email,
+            }, { withCredentials: true })
+            console.log(data);
+            navigate(from, { replace: true })
             toast.success('SignIn Successful')
         } catch (error) {
             console.log(error);
             toast.error(error.message);
         }
     }
+
+    if (user || loading) return;
+
     return (
         <div className='flex justify-center items-center min-h-[calc(100vh-306px)] my-12'>
             <div className='flex w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-lg  lg:max-w-4xl '>
